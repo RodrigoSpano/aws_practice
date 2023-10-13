@@ -1,0 +1,6 @@
+service: lambda-dynamo-serverless-crud
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs18.x
