@@ -1,0 +1,64 @@
+service: ApesUniversity-users-settings-ms
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  iam:
+    role:
+      statements:
+      - Effect: Allow
+        Action:
+          - cognito-idp:adminDeleteUser
+          - cognito-idp:getUser
+          - cognito-idp:adminAddUserToGroup
+        Resource:
+          - arn:aws:cognito-idp:us-east-1:294329382327:userpool/us-east-1_wGBLDIywa
+      - Effect: Allow
+        Action:
+          - dynamoDB:deleteItem
+          - dynamoDB:getItem
+          - dynamoDB:updateItem
+        Resource: 
+          - arn:aws:dynamodb:us-east-1:294329382327:table/Users
+
+functions:
+  deleteUser:
+    handler: src/delete.handler
+    events:
+      - httpApi:
+          path: /user
+          method: delete
+  
+  updateUserRole:
+    handler: src/updateRoles.handler
+    events:
+      - httpApi:
+          path: /user/role
+          method: put
+    
+  getUser:
+    handler: src/getUser.handler
+    events:
+      - httpApi:
+          path: /user
+          method: get
+          
+  AuthFunction:
+    handler: src/authorizer.handler
+
+
+resources:
+  Resources:
+    API:
+      Type: AWS::Serverless::Api
+      Properties:
+        StageName: dev
+        Auth:
+          DefaultAuthorizer: MyLambdaTokenAuthorizer
+          Authorizers:
+            MyLambdaTokenAuthorizer:
+              FunctionArn: 
+                Fn::GetAtt:
+                  - AuthFunction
+                  - Arn

@@ -4,3 +4,27 @@ frameworkVersion: '3'
 provider:
   name: aws
   runtime: nodejs18.x
+
+functions:
+  createTask:
+    handler: src/createTask.handler
+    events:
+      - httpApi:
+          path: /create
+          method: post
+
+resources:
+  Resources:
+    Task:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: Tasks
+        AttributeDefinitions:
+          - AttributeName: name
+            AttributeType: S
+        KeySchema:
+          - AttributeName: name
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1

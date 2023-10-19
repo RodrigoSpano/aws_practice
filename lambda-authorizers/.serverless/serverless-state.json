@@ -1,0 +1,426 @@
+{
+  "service": {
+    "service": "lambda-authorizer",
+    "serviceObject": {
+      "name": "lambda-authorizer"
+    },
+    "provider": {
+      "name": "aws",
+      "runtime": "nodejs18.x",
+      "stage": "dev",
+      "environment": {
+        "USER_POOL": {
+          "Fn::Sub": "${UserPool}"
+        },
+        "USER_POOL_CLIENT": {
+          "Fn::Sub": "${UserPoolClient}"
+        },
+        "AWS_REGION": "us-east-1"
+      },
+      "region": "us-east-1",
+      "versionFunctions": true,
+      "compiledCloudFormationTemplate": {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "The AWS CloudFormation template for this Serverless application",
+        "Resources": {
+          "ServerlessDeploymentBucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+              "BucketEncryption": {
+                "ServerSideEncryptionConfiguration": [
+                  {
+                    "ServerSideEncryptionByDefault": {
+                      "SSEAlgorithm": "AES256"
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "ServerlessDeploymentBucketPolicy": {
+            "Type": "AWS::S3::BucketPolicy",
+            "Properties": {
+              "Bucket": {
+                "Ref": "ServerlessDeploymentBucket"
+              },
+              "PolicyDocument": {
+                "Statement": [
+                  {
+                    "Action": "s3:*",
+                    "Effect": "Deny",
+                    "Principal": "*",
+                    "Resource": [
+                      {
+                        "Fn::Join": [
+                          "",
+                          [
+                            "arn:",
+                            {
+                              "Ref": "AWS::Partition"
+                            },
+                            ":s3:::",
+                            {
+                              "Ref": "ServerlessDeploymentBucket"
+                            },
+                            "/*"
+                          ]
+                        ]
+                      },
+                      {
+                        "Fn::Join": [
+                          "",
+                          [
+                            "arn:",
+                            {
+                              "Ref": "AWS::Partition"
+                            },
+                            ":s3:::",
+                            {
+                              "Ref": "ServerlessDeploymentBucket"
+                            }
+                          ]
+                        ]
+                      }
+                    ],
+                    "Condition": {
+                      "Bool": {
+                        "aws:SecureTransport": false
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "UserSettingsApi": {
+            "Type": "AWS::Serverless::Api",
+            "Properties": {
+              "StageName": "dev",
+              "Auth": {
+                "DefaultAuthorizer": "MyLambdaTokenAuthorizer",
+                "Authorizers": {
+                  "MyLambdaTokenAuthorizer": {
+                    "FunctionArn": {
+                      "Fn::GetAtt": [
+                        "AuthorizerFunction",
+                        "Arn"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "UserPool": {
+            "Type": "AWS::Cognito::UserPool",
+            "Properties": {
+              "UserPoolName": "prueba-userpool",
+              "Schema": [
+                {
+                  "Name": "email",
+                  "AttributeDataType": "String",
+                  "Mutable": true,
+                  "Required": true
+                }
+              ],
+              "Policies": {
+                "PasswordPolicy": {
+                  "MinimumLength": 8
+                }
+              }
+            }
+          },
+          "UserPoolClient": {
+            "Type": "AWS::Cognito::UserPoolClient",
+            "Properties": {
+              "ClientName": "prueba-userpool-client",
+              "UserPoolId": {
+                "Ref": "UserPool"
+              },
+              "GenerateSecret": false,
+              "ExplicitAuthFlows": [
+                "USER_PASSWORD_AUTH"
+              ]
+            }
+          },
+          "registerUser": {
+            "Type": "AWS::Serverless::Function",
+            "Properties": {
+              "Handler": "src/register.handler",
+              "Events": {
+                "HttpApi": {
+                  "Type": "HttpApi",
+                  "Properties": {
+                    "Method": "post",
+                    "Path": "/signup"
+                  }
+                }
+              }
+            }
+          },
+          "loginUser": {
+            "Type": "AWS::Serverless::Function",
+            "Properties": {
+              "Handler": "src/login.handler",
+              "Events": {
+                "HttpApi": {
+                  "Type": "HttpApi",
+                  "Properties": {
+                    "Path": "/login",
+                    "Method": "post"
+                  }
+                }
+              }
+            }
+          },
+          "HelloWorld": {
+            "Type": "AWS::Serverless::Function",
+            "Properties": {
+              "Handler": "src/helloworld.handler",
+              "Events": {
+                "Api": {
+                  "Type": "Api",
+                  "Properties": {
+                    "RestApiId": {
+                      "Ref": "ProtectedApi"
+                    },
+                    "Path": "/hello",
+                    "Method": "get"
+                  }
+                }
+              }
+            }
+          },
+          "AuthorizerFunction": {
+            "Type": "AWS::Serverless::Function",
+            "Properties": {
+              "Handler": "utils/authorizer.handler"
+            }
+          }
+        },
+        "Outputs": {
+          "ServerlessDeploymentBucketName": {
+            "Value": {
+              "Ref": "ServerlessDeploymentBucket"
+            },
+            "Export": {
+              "Name": "sls-lambda-authorizer-dev-ServerlessDeploymentBucketName"
+            }
+          }
+        }
+      },
+      "coreCloudFormationTemplate": {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "The AWS CloudFormation template for this Serverless application",
+        "Resources": {
+          "ServerlessDeploymentBucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+              "BucketEncryption": {
+                "ServerSideEncryptionConfiguration": [
+                  {
+                    "ServerSideEncryptionByDefault": {
+                      "SSEAlgorithm": "AES256"
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "ServerlessDeploymentBucketPolicy": {
+            "Type": "AWS::S3::BucketPolicy",
+            "Properties": {
+              "Bucket": {
+                "Ref": "ServerlessDeploymentBucket"
+              },
+              "PolicyDocument": {
+                "Statement": [
+                  {
+                    "Action": "s3:*",
+                    "Effect": "Deny",
+                    "Principal": "*",
+                    "Resource": [
+                      {
+                        "Fn::Join": [
+                          "",
+                          [
+                            "arn:",
+                            {
+                              "Ref": "AWS::Partition"
+                            },
+                            ":s3:::",
+                            {
+                              "Ref": "ServerlessDeploymentBucket"
+                            },
+                            "/*"
+                          ]
+                        ]
+                      },
+                      {
+                        "Fn::Join": [
+                          "",
+                          [
+                            "arn:",
+                            {
+                              "Ref": "AWS::Partition"
+                            },
+                            ":s3:::",
+                            {
+                              "Ref": "ServerlessDeploymentBucket"
+                            }
+                          ]
+                        ]
+                      }
+                    ],
+                    "Condition": {
+                      "Bool": {
+                        "aws:SecureTransport": false
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "Outputs": {
+          "ServerlessDeploymentBucketName": {
+            "Value": {
+              "Ref": "ServerlessDeploymentBucket"
+            }
+          }
+        }
+      }
+    },
+    "pluginsData": {},
+    "functions": {},
+    "resources": {
+      "Resources": {
+        "UserSettingsApi": {
+          "Type": "AWS::Serverless::Api",
+          "Properties": {
+            "StageName": "dev",
+            "Auth": {
+              "DefaultAuthorizer": "MyLambdaTokenAuthorizer",
+              "Authorizers": {
+                "MyLambdaTokenAuthorizer": {
+                  "FunctionArn": {
+                    "Fn::GetAtt": [
+                      "AuthorizerFunction",
+                      "Arn"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "UserPool": {
+          "Type": "AWS::Cognito::UserPool",
+          "Properties": {
+            "UserPoolName": "prueba-userpool",
+            "Schema": [
+              {
+                "Name": "email",
+                "AttributeDataType": "String",
+                "Mutable": true,
+                "Required": true
+              }
+            ],
+            "Policies": {
+              "PasswordPolicy": {
+                "MinimumLength": 8
+              }
+            }
+          }
+        },
+        "UserPoolClient": {
+          "Type": "AWS::Cognito::UserPoolClient",
+          "Properties": {
+            "ClientName": "prueba-userpool-client",
+            "UserPoolId": {
+              "Ref": "UserPool"
+            },
+            "GenerateSecret": false,
+            "ExplicitAuthFlows": [
+              "USER_PASSWORD_AUTH"
+            ]
+          }
+        },
+        "registerUser": {
+          "Type": "AWS::Serverless::Function",
+          "Properties": {
+            "Handler": "src/register.handler",
+            "Events": {
+              "HttpApi": {
+                "Type": "HttpApi",
+                "Properties": {
+                  "Method": "post",
+                  "Path": "/signup"
+                }
+              }
+            }
+          }
+        },
+        "loginUser": {
+          "Type": "AWS::Serverless::Function",
+          "Properties": {
+            "Handler": "src/login.handler",
+            "Events": {
+              "HttpApi": {
+                "Type": "HttpApi",
+                "Properties": {
+                  "Path": "/login",
+                  "Method": "post"
+                }
+              }
+            }
+          }
+        },
+        "HelloWorld": {
+          "Type": "AWS::Serverless::Function",
+          "Properties": {
+            "Handler": "src/helloworld.handler",
+            "Events": {
+              "Api": {
+                "Type": "Api",
+                "Properties": {
+                  "RestApiId": {
+                    "Ref": "ProtectedApi"
+                  },
+                  "Path": "/hello",
+                  "Method": "get"
+                }
+              }
+            }
+          }
+        },
+        "AuthorizerFunction": {
+          "Type": "AWS::Serverless::Function",
+          "Properties": {
+            "Handler": "utils/authorizer.handler"
+          }
+        }
+      },
+      "Outputs": {}
+    },
+    "configValidationMode": "warn",
+    "serviceFilename": "serverless.yml",
+    "initialServerlessConfig": {
+      "service": "lambda-authorizer",
+      "frameworkVersion": "3",
+      "provider": {
+        "$ref": "$[\"service\"][\"provider\"]"
+      },
+      "resources": {
+        "$ref": "$[\"service\"][\"resources\"]"
+      }
+    },
+    "layers": {},
+    "isDashboardMonitoringPreconfigured": false
+  },
+  "package": {
+    "artifactDirectoryName": "serverless/lambda-authorizer/dev/1697484193953-2023-10-16T19:23:13.953Z",
+    "artifact": ""
+  }
+}

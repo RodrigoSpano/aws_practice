@@ -1,0 +1,88 @@
+service: lambda-authorizer
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  stage: dev
+  environment:
+    USER_POOL: !Sub ${UserPool}
+    USER_POOL_CLIENT: !Sub ${UserPoolClient}
+    AWS_REGION: 'us-east-1'
+
+resources:
+  Resources:
+    UserSettingsApi:
+      Type: AWS::Serverless::Api
+      Properties:
+        StageName: dev
+        Auth:
+          DefaultAuthorizer: MyLambdaTokenAuthorizer
+          Authorizers:
+            MyLambdaTokenAuthorizer:
+              FunctionArn: !GetAtt AuthorizerFunction.Arn
+
+    UserPool:
+      Type: AWS::Cognito::UserPool
+      Properties:
+        UserPoolName: prueba-userpool
+        Schema:
+          - Name: email
+            AttributeDataType: String
+            Mutable: true
+            Required: true
+        Policies:
+          PasswordPolicy:
+            MinimumLength: 8
+
+    UserPoolClient:
+      Type: AWS::Cognito::UserPoolClient
+      Properties:
+        ClientName: prueba-userpool-client
+        UserPoolId: 
+          Ref: UserPool
+        GenerateSecret: false
+        ExplicitAuthFlows:
+          - USER_PASSWORD_AUTH
+
+    registerUser:
+      Type: AWS::Serverless::Function
+      Properties:
+        Handler: src/register.handler
+        Events:
+          HttpApi:
+            Type: HttpApi
+            Properties:
+              Method: post
+              Path: /signup
+                  
+          
+    loginUser:
+      Type: AWS::Serverless::Function
+      Properties:
+        Handler: src/login.handler
+        Events:
+          HttpApi:
+            Type: HttpApi
+            Properties:
+              Path: /login
+              Method: post
+
+    HelloWorld:
+      Type: AWS::Serverless::Function
+      Properties:
+        Handler: src/helloworld.handler
+        Events:
+          Api:
+            Type: Api
+            Properties:
+              RestApiId: !Ref ProtectedApi
+              Path: /hello
+              Method: get
+      
+      # lambda authorizer
+    AuthorizerFunction:
+      Type: AWS::Serverless::Function
+      Properties:
+        Handler: utils/authorizer.handler
+
